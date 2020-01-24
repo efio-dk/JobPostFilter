@@ -1,0 +1,10 @@
+/Users/elitsamarinovska/Downloads/Efio/Code/JobPostFilter/src/JobPostFilter/bin/Debug/netcoreapp2.1/JobPostFilter.deps.json
+/Users/elitsamarinovska/Downloads/Efio/Code/JobPostFilter/src/JobPostFilter/bin/Debug/netcoreapp2.1/JobPostFilter.runtimeconfig.json
+/Users/elitsamarinovska/Downloads/Efio/Code/JobPostFilter/src/JobPostFilter/bin/Debug/netcoreapp2.1/JobPostFilter.runtimeconfig.dev.json
+/Users/elitsamarinovska/Downloads/Efio/Code/JobPostFilter/src/JobPostFilter/bin/Debug/netcoreapp2.1/JobPostFilter.dll
+/Users/elitsamarinovska/Downloads/Efio/Code/JobPostFilter/src/JobPostFilter/bin/Debug/netcoreapp2.1/JobPostFilter.pdb
+/Users/elitsamarinovska/Downloads/Efio/Code/JobPostFilter/src/JobPostFilter/obj/Debug/netcoreapp2.1/JobPostFilter.csprojAssemblyReference.cache
+/Users/elitsamarinovska/Downloads/Efio/Code/JobPostFilter/src/JobPostFilter/obj/Debug/netcoreapp2.1/JobPostFilter.AssemblyInfoInputs.cache
+/Users/elitsamarinovska/Downloads/Efio/Code/JobPostFilter/src/JobPostFilter/obj/Debug/netcoreapp2.1/JobPostFilter.AssemblyInfo.cs
+/Users/elitsamarinovska/Downloads/Efio/Code/JobPostFilter/src/JobPostFilter/obj/Debug/netcoreapp2.1/JobPostFilter.dll
+/Users/elitsamarinovska/Downloads/Efio/Code/JobPostFilter/src/JobPostFilter/obj/Debug/netcoreapp2.1/JobPostFilter.pdb
