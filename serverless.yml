@@ -7,7 +7,7 @@ provider:
   region: us-east-1
 
 package:
-  artifact: /src/JobPostFilter/bin/Release/netcoreapp2.1/JobPostFilter.zip
+  artifact: src/JobPostFilter/bin/Release/netcoreapp2.1/JobPostFilter.zip
 
 functions:
   functionHandler:
