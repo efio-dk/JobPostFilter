@@ -50,11 +50,13 @@ namespace JobPostFilter
         {
             JobPost jobPost = JsonConvert.DeserializeObject<JobPost>(message.Body);
             string hash = ComputeSha256Hash(jobPost.FullJobPost);
+            bool itemPresent = await GetItem(hash);
 
             context.Logger.LogLine(hash);
-            context.Logger.LogLine((await GetItem(hash)).ToString());
+            context.Logger.LogLine(itemPresent.ToString());
+            context.Logger.LogLine("CI/CD works!");
 
-            if ((await GetItem(hash)) == false)
+            if (itemPresent == false)
             {
                 PutItem(hash);
                 PublishToProcessedQueue(message.Body);
