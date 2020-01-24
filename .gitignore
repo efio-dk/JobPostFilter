@@ -1,0 +1,5 @@
+.DS_Store
+.vscode/
+[Bb]in/
+[Oo]bj/
+publish/
