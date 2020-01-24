@@ -1,0 +1,17 @@
+service: JobPostFilter
+
+provider:
+  name: aws
+  runtime: dotnetcore2.1
+
+  region: us-east-1
+
+package:
+  artifact: bin/Release/netcoreapp2.1/JobPostFilter.zip
+
+functions:
+  functionHandler:
+    handler: JobPostFilter::JobPostFilter.Function::FunctionHandler
+
+    events:
+      - sqs: arn:aws:sqs:eu-west-1:833191605868:JobPosts
