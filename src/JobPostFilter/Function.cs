@@ -54,7 +54,6 @@ namespace JobPostFilter
 
             context.Logger.LogLine(hash);
             context.Logger.LogLine(itemPresent.ToString());
-            context.Logger.LogLine("CI/CD works!");
 
             if (itemPresent == false)
             {
