@@ -3,10 +3,10 @@ service: JobPostFilter
 provider:
   name: aws
   runtime: dotnetcore2.1
-  
   role: arn:aws:iam::833191605868:role/JobPostFilterRole
-
-  region: us-east-1
+  
+  stage: prod
+  region: eu-west-1
 
 package:
   artifact: src/JobPostFilter/bin/Release/netcoreapp2.1/JobPostFilter.zip
