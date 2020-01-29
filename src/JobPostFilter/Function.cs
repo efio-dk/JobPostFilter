@@ -1,3 +1,4 @@
+using System;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -54,13 +55,14 @@ namespace JobPostFilter
 
             context.Logger.LogLine(hash);
             context.Logger.LogLine(itemPresent.ToString());
-            context.Logger.LogLine("CI/CD works!");
 
             if (itemPresent == false)
             {
                 PutItem(hash);
-                PublishToProcessedQueue(message.Body);
+                PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts");
             }
+            else
+                PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts");
 
             await Task.CompletedTask;
         }
@@ -98,11 +100,11 @@ namespace JobPostFilter
             await table.PutItemAsync(hashDoc);
         }
 
-        private async void PublishToProcessedQueue(string msg)
+        private async void PublishToQueue(string msg, string queueUrl)
         {
-            string myQueueURL = "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts";
+            string myQueueURL = queueUrl;
             SendMessageRequest sendMessageRequest = new SendMessageRequest();
-            sendMessageRequest.QueueUrl = myQueueURL; 
+            sendMessageRequest.QueueUrl = myQueueURL;
             sendMessageRequest.MessageBody = msg;
 
             AmazonSQSClient sqsClient = new AmazonSQSClient();
