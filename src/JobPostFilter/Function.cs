@@ -19,7 +19,8 @@ namespace JobPostFilter
     public class Function
     {
         static AmazonDynamoDBClient client = new AmazonDynamoDBClient();
-        Table table = Table.LoadTable(client, "ProcessedPosts");
+        Table bodyTable = Table.LoadTable(client, "PostBodyHashes");
+        Table urlTable = Table.LoadTable(client, "PostUrlHashes");
 
         /// <summary>
         /// Default constructor. This constructor is used by Lambda to construct the instance. When invoked in a Lambda environment
@@ -50,16 +51,29 @@ namespace JobPostFilter
         private async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context)
         {
             JobPost jobPost = JsonConvert.DeserializeObject<JobPost>(message.Body);
-            string hash = ComputeSha256Hash(jobPost.FullJobPost);
-            bool itemPresent = await GetItem(hash);
+            string urlHash = ComputeSha256Hash(jobPost.JobPostUrl);
+            bool urlPresent = await GetItem(urlHash, urlTable);
 
-            context.Logger.LogLine(hash);
-            context.Logger.LogLine(itemPresent.ToString());
+            context.Logger.LogLine(urlHash);
+            context.Logger.LogLine(urlPresent.ToString());
 
-            if (itemPresent == false)
+            if (urlPresent == false)
             {
-                PutItem(hash);
-                PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts");
+                PutItem(urlHash, urlTable, "urlHash");
+
+                string bodyHash = ComputeSha256Hash(jobPost.FullJobPost);
+                bool bodyPresent = await GetItem(bodyHash, bodyTable);
+
+                context.Logger.LogLine(bodyHash);
+                context.Logger.LogLine(bodyPresent.ToString());
+
+                if (bodyPresent == false)
+                {
+                    PutItem(bodyHash, bodyTable, "sourceHash");
+                    PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts");
+                }
+                else
+                    PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts");
             }
             else
                 PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts");
@@ -85,17 +99,17 @@ namespace JobPostFilter
             }
         }
 
-        private async Task<bool> GetItem(string hash)
+        private async Task<bool> GetItem(string hash, Table table)
         {
             Document result = await table.GetItemAsync(hash);
 
             return result != null;
         }
 
-        private async void PutItem(string hash)
+        private async void PutItem(string hash, Table table, string paramName)
         {
             Document hashDoc = new Document();
-            hashDoc["sourceHash"] = hash;
+            hashDoc[paramName] = hash;
 
             await table.PutItemAsync(hashDoc);
         }
