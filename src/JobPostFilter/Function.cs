@@ -1,4 +1,3 @@
-using System;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,7 +7,8 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
 using Amazon.SQS;
 using Amazon.SQS.Model;
-using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Schema;
 
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
@@ -50,8 +50,15 @@ namespace JobPostFilter
 
         private async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context)
         {
-            JobPost jobPost = JsonConvert.DeserializeObject<JobPost>(message.Body);
-            string urlHash = ComputeSha256Hash(jobPost.JobPostUrl);
+            //JobPost jobPost = JsonConvert.DeserializeObject<JobPost>(message.Body);
+
+            JObject jobPost = JObject.Parse(message.Body);
+            bool isValid = jobPost.IsValid(JobPost.GetJsonSchema());
+
+            string jobPostUrl = jobPost.Value<string>("source");
+            string jobPostBody = jobPost.Value<string>("rawText");
+
+            string urlHash = ComputeSha256Hash(jobPostUrl);
             bool urlPresent = await GetItem(urlHash, urlTable);
 
             context.Logger.LogLine(urlHash);
@@ -61,7 +68,7 @@ namespace JobPostFilter
             {
                 PutItem(urlHash, urlTable, "urlHash");
 
-                string bodyHash = ComputeSha256Hash(jobPost.FullJobPost);
+                string bodyHash = ComputeSha256Hash(jobPostBody);
                 bool bodyPresent = await GetItem(bodyHash, bodyTable);
 
                 context.Logger.LogLine(bodyHash);
