@@ -55,35 +55,40 @@ namespace JobPostFilter
             JObject jobPost = JObject.Parse(message.Body);
             bool isValid = jobPost.IsValid(JobPost.GetJsonSchema());
 
-            string jobPostUrl = jobPost.Value<string>("source");
-            string jobPostBody = jobPost.Value<string>("rawText");
-
-            string urlHash = ComputeSha256Hash(jobPostUrl);
-            bool urlPresent = await GetItem(urlHash, urlTable);
-
-            context.Logger.LogLine(urlHash);
-            context.Logger.LogLine(urlPresent.ToString());
-
-            if (urlPresent == false)
+            if (isValid)
             {
-                PutItem(urlHash, urlTable, "urlHash");
+                string jobPostUrl = jobPost.Value<string>("source");
+                string jobPostBody = jobPost.Value<string>("rawText");
 
-                string bodyHash = ComputeSha256Hash(jobPostBody);
-                bool bodyPresent = await GetItem(bodyHash, bodyTable);
+                string urlHash = ComputeSha256Hash(jobPostUrl);
+                bool urlPresent = await GetItem(urlHash, urlTable);
 
-                context.Logger.LogLine(bodyHash);
-                context.Logger.LogLine(bodyPresent.ToString());
+                context.Logger.LogLine(urlHash);
+                context.Logger.LogLine(urlPresent.ToString());
 
-                if (bodyPresent == false)
+                if (urlPresent == false)
                 {
-                    PutItem(bodyHash, bodyTable, "sourceHash");
-                    PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts");
+                    PutItem(urlHash, urlTable, "urlHash");
+
+                    string bodyHash = ComputeSha256Hash(jobPostBody);
+                    bool bodyPresent = await GetItem(bodyHash, bodyTable);
+
+                    context.Logger.LogLine(bodyHash);
+                    context.Logger.LogLine(bodyPresent.ToString());
+
+                    if (bodyPresent == false)
+                    {
+                        PutItem(bodyHash, bodyTable, "sourceHash");
+                        await PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts");
+                    }
+                    else
+                        await PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts");
                 }
                 else
-                    PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts");
+                    await PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts");
             }
             else
-                PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts");
+                await PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/InvalidJobPosts");
 
             await Task.CompletedTask;
         }
@@ -121,7 +126,7 @@ namespace JobPostFilter
             await table.PutItemAsync(hashDoc);
         }
 
-        private async void PublishToQueue(string msg, string queueUrl)
+        private async Task PublishToQueue(string msg, string queueUrl)
         {
             string myQueueURL = queueUrl;
             SendMessageRequest sendMessageRequest = new SendMessageRequest();
