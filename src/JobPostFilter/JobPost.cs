@@ -62,7 +62,7 @@ namespace JobPostFilter
                     'keywords': {
                     'description': 'A list of all tech keywords found in the post.',
                     'type': 'array',
-                    'minItems': '1',
+                    'minItems': 1,
                     'uniqueItems': true
                     },
                     'customer': {
