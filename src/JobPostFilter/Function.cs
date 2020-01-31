@@ -1,14 +1,9 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
-using Amazon.SQS;
-using Amazon.SQS.Model;
-using Newtonsoft.Json;
-
+using Newtonsoft.Json.Linq;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
@@ -18,7 +13,8 @@ namespace JobPostFilter
     public class Function
     {
         static AmazonDynamoDBClient client = new AmazonDynamoDBClient();
-        Table table = Table.LoadTable(client, "ProcessedPosts");
+        Table bodyTable = Table.LoadTable(client, "PostBodyHashes");
+        Table urlTable = Table.LoadTable(client, "PostUrlHashes");
 
         /// <summary>
         /// Default constructor. This constructor is used by Lambda to construct the instance. When invoked in a Lambda environment
@@ -40,74 +36,61 @@ namespace JobPostFilter
         /// <returns></returns>
         public async Task FunctionHandler(SQSEvent evnt, ILambdaContext context)
         {
+            IDBFacade db = new AWSDB();
+            IQueueFacade queue = new AWSQueue();
+
             foreach (var message in evnt.Records)
             {
-                await ProcessMessageAsync(message, context);
+                await ProcessMessageAsync(message, context, db, queue);
             }
         }
 
-        private async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context)
+        public async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context, IDBFacade db, IQueueFacade queue)
         {
-            JobPost jobPost = JsonConvert.DeserializeObject<JobPost>(message.Body);
-            string hash = ComputeSha256Hash(jobPost.FullJobPost);
-            bool itemPresent = await GetItem(hash);
+            JObject jobPost = JObject.Parse(message.Body);
+            string queueUri = await GetQueueForMessage(jobPost, db);
 
-            context.Logger.LogLine(hash);
-            context.Logger.LogLine(itemPresent.ToString());
-            context.Logger.LogLine("CI/CD works!");
-
-            if (itemPresent == false)
-            {
-                PutItem(hash);
-                PublishToProcessedQueue(message.Body);
-            }
+            // publish message to the corresponding SQS queue
+            await queue.PublishToQueue(message.Body, queueUri);
 
             await Task.CompletedTask;
         }
 
-        private string ComputeSha256Hash(string rawData)
+        public async Task<string> GetQueueForMessage(JObject jobPost, IDBFacade db)
         {
-            // Create a SHA256   
-            using (SHA256 sha256Hash = SHA256.Create())
+            bool isValid = Utility.IsSchemaValid(jobPost);
+            string queueUri = "";
+
+            if (isValid)
             {
-                // ComputeHash - returns byte array  
-                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+                string jobPostUrl = jobPost.Value<string>("source");
+                string jobPostBody = jobPost.Value<string>("rawText");
 
-                // Convert byte array to a string   
-                StringBuilder builder = new StringBuilder();
-                for (int i = 0; i < bytes.Length; i++)
+                string urlHash = Utility.ComputeSha256Hash(jobPostUrl);
+                bool urlPresent = await db.GetItem(urlHash, urlTable);
+
+                if (urlPresent == false)
                 {
-                    builder.Append(bytes[i].ToString("x2"));
+                    db.PutItem(urlHash, urlTable, "urlHash");
+
+                    string bodyHash = Utility.ComputeSha256Hash(jobPostBody);
+                    bool bodyPresent = await db.GetItem(bodyHash, bodyTable);
+
+                    if (bodyPresent == false)
+                    {
+                        db.PutItem(bodyHash, bodyTable, "sourceHash");
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts";
+                    }
+                    else
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts";
                 }
-                return builder.ToString();
+                else
+                    queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts";
             }
-        }
+            else
+                queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/InvalidJobPosts";
 
-        private async Task<bool> GetItem(string hash)
-        {
-            Document result = await table.GetItemAsync(hash);
-
-            return result != null;
-        }
-
-        private async void PutItem(string hash)
-        {
-            Document hashDoc = new Document();
-            hashDoc["sourceHash"] = hash;
-
-            await table.PutItemAsync(hashDoc);
-        }
-
-        private async void PublishToProcessedQueue(string msg)
-        {
-            string myQueueURL = "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts";
-            SendMessageRequest sendMessageRequest = new SendMessageRequest();
-            sendMessageRequest.QueueUrl = myQueueURL; 
-            sendMessageRequest.MessageBody = msg;
-
-            AmazonSQSClient sqsClient = new AmazonSQSClient();
-
-            await sqsClient.SendMessageAsync(sendMessageRequest);
+            return queueUri;
         }
     }
 }
