@@ -50,17 +50,15 @@ namespace JobPostFilter
 
         private async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context)
         {
-            //JobPost jobPost = JsonConvert.DeserializeObject<JobPost>(message.Body);
-
             JObject jobPost = JObject.Parse(message.Body);
-            bool isValid = jobPost.IsValid(JobPost.GetJsonSchema());
+            bool isValid = Utility.IsSchemaValid(jobPost);
 
             if (isValid)
             {
-                string jobPostUrl = jobPost.Value<string>("source");
+                string jobPostUrl = jobPost.Value<string>("sourceId");
                 string jobPostBody = jobPost.Value<string>("rawText");
 
-                string urlHash = ComputeSha256Hash(jobPostUrl);
+                string urlHash = Utility.ComputeSha256Hash(jobPostUrl);
                 bool urlPresent = await GetItem(urlHash, urlTable);
 
                 context.Logger.LogLine(urlHash);
@@ -70,7 +68,7 @@ namespace JobPostFilter
                 {
                     PutItem(urlHash, urlTable, "urlHash");
 
-                    string bodyHash = ComputeSha256Hash(jobPostBody);
+                    string bodyHash = Utility.ComputeSha256Hash(jobPostBody);
                     bool bodyPresent = await GetItem(bodyHash, bodyTable);
 
                     context.Logger.LogLine(bodyHash);
@@ -91,24 +89,6 @@ namespace JobPostFilter
                 await PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/InvalidJobPosts");
 
             await Task.CompletedTask;
-        }
-
-        private string ComputeSha256Hash(string rawData)
-        {
-            // Create a SHA256   
-            using (SHA256 sha256Hash = SHA256.Create())
-            {
-                // ComputeHash - returns byte array  
-                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
-
-                // Convert byte array to a string   
-                StringBuilder builder = new StringBuilder();
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    builder.Append(bytes[i].ToString("x2"));
-                }
-                return builder.ToString();
-            }
         }
 
         private async Task<bool> GetItem(string hash, Table table)
