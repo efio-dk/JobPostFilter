@@ -47,8 +47,6 @@ namespace JobPostFilter
 
         public async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context, IDBFacade db, IQueueFacade queue)
         {
-            //JobPost jobPost = JsonConvert.DeserializeObject<JobPost>(message.Body);
-
             JObject jobPost = JObject.Parse(message.Body);
             string queueUri = await GetQueueForMessage(jobPost, db);
 
