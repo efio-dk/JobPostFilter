@@ -1,15 +1,9 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
-using Amazon.SQS;
-using Amazon.SQS.Model;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Schema;
-
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
@@ -42,80 +36,63 @@ namespace JobPostFilter
         /// <returns></returns>
         public async Task FunctionHandler(SQSEvent evnt, ILambdaContext context)
         {
+            IDBFacade db = new AWSDB();
+            IQueueFacade queue = new AWSQueue();
+
             foreach (var message in evnt.Records)
             {
-                await ProcessMessageAsync(message, context);
+                await ProcessMessageAsync(message, context, db, queue);
             }
         }
 
-        private async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context)
+        public async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context, IDBFacade db, IQueueFacade queue)
         {
+            //JobPost jobPost = JsonConvert.DeserializeObject<JobPost>(message.Body);
+
             JObject jobPost = JObject.Parse(message.Body);
-            bool isValid = Utility.IsSchemaValid(jobPost);
+            string queueUri = await GetQueueForMessage(jobPost, db);
 
-            if (isValid)
-            {
-                string jobPostUrl = jobPost.Value<string>("sourceId");
-                string jobPostBody = jobPost.Value<string>("rawText");
-
-                string urlHash = Utility.ComputeSha256Hash(jobPostUrl);
-                bool urlPresent = await GetItem(urlHash, urlTable);
-
-                context.Logger.LogLine(urlHash);
-                context.Logger.LogLine(urlPresent.ToString());
-
-                if (urlPresent == false)
-                {
-                    PutItem(urlHash, urlTable, "urlHash");
-
-                    string bodyHash = Utility.ComputeSha256Hash(jobPostBody);
-                    bool bodyPresent = await GetItem(bodyHash, bodyTable);
-
-                    context.Logger.LogLine(bodyHash);
-                    context.Logger.LogLine(bodyPresent.ToString());
-
-                    if (bodyPresent == false)
-                    {
-                        PutItem(bodyHash, bodyTable, "sourceHash");
-                        await PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts");
-                    }
-                    else
-                        await PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts");
-                }
-                else
-                    await PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts");
-            }
-            else
-                await PublishToQueue(message.Body, "https://sqs.eu-west-1.amazonaws.com/833191605868/InvalidJobPosts");
+            // publish message to the corresponding SQS queue
+            await queue.PublishToQueue(message.Body, queueUri);
 
             await Task.CompletedTask;
         }
 
-        private async Task<bool> GetItem(string hash, Table table)
+        public async Task<string> GetQueueForMessage(JObject jobPost, IDBFacade db)
         {
-            Document result = await table.GetItemAsync(hash);
+            bool isValid = Utility.IsSchemaValid(jobPost);
+            string queueUri = "";
 
-            return result != null;
-        }
+            if (isValid)
+            {
+                string jobPostUrl = jobPost.Value<string>("source");
+                string jobPostBody = jobPost.Value<string>("rawText");
 
-        private async void PutItem(string hash, Table table, string paramName)
-        {
-            Document hashDoc = new Document();
-            hashDoc[paramName] = hash;
+                string urlHash = Utility.ComputeSha256Hash(jobPostUrl);
+                bool urlPresent = await db.GetItem(urlHash, urlTable);
 
-            await table.PutItemAsync(hashDoc);
-        }
+                if (urlPresent == false)
+                {
+                    db.PutItem(urlHash, urlTable, "urlHash");
 
-        private async Task PublishToQueue(string msg, string queueUrl)
-        {
-            string myQueueURL = queueUrl;
-            SendMessageRequest sendMessageRequest = new SendMessageRequest();
-            sendMessageRequest.QueueUrl = myQueueURL;
-            sendMessageRequest.MessageBody = msg;
+                    string bodyHash = Utility.ComputeSha256Hash(jobPostBody);
+                    bool bodyPresent = await db.GetItem(bodyHash, bodyTable);
 
-            AmazonSQSClient sqsClient = new AmazonSQSClient();
+                    if (bodyPresent == false)
+                    {
+                        db.PutItem(bodyHash, bodyTable, "sourceHash");
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts";
+                    }
+                    else
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts";
+                }
+                else
+                    queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts";
+            }
+            else
+                queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/InvalidJobPosts";
 
-            await sqsClient.SendMessageAsync(sendMessageRequest);
+            return queueUri;
         }
     }
 }
