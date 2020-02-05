@@ -79,16 +79,16 @@ namespace JobPostFilter
                     if (bodyPresent == false)
                     {
                         db.PutItem(bodyHash, bodyTable, "sourceHash");
-                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts";
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.SUCESS_QUEUE;
                     }
                     else
-                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts";
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.EXISTING_QUEUE;
                 }
                 else
-                    queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts";
+                    queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.EXISTING_QUEUE;
             }
             else
-                queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/InvalidJobPosts";
+                queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.INVALID_QUEUE;
 
             return queueUri;
         }
