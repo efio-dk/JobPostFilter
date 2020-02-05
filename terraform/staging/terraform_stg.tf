@@ -1,3 +1,8 @@
+provider "aws" {
+  region  = "eu-west-1"
+}
+
+
 resource "aws_sqs_queue" "stg-existing-job-post-queue" {
   name                      = "stg_ExistingJobPosts"
 
