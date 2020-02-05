@@ -34,6 +34,8 @@ resource "aws_sqs_queue" "stg-processed-job-post-queue" {
 resource "aws_dynamodb_table" "stg-post-body-hashes-table" {
   name           = "stg_PostBodyHashes"
   hash_key       = "sourceHash"
+  read_capacity  = 5
+  write_capacity = 5
 
   attribute {
     name = "sourceHash"
@@ -49,6 +51,8 @@ resource "aws_dynamodb_table" "stg-post-body-hashes-table" {
 resource "aws_dynamodb_table" "stg-post-url-hashes-table" {
   name           = "stg_PostUrlHashes"
   hash_key       = "urlHash"
+  read_capacity  = 5
+  write_capacity = 5
 
   attribute {
     name = "urlHash"
