@@ -13,6 +13,7 @@ namespace JobPostFilter
     public class Function
     {
         static AmazonDynamoDBClient client = new AmazonDynamoDBClient();
+      
         Table bodyTable = Table.LoadTable(client, GlobalVars.BODY_TABLE);
         Table urlTable = Table.LoadTable(client, GlobalVars.URL_TABLE);
 
