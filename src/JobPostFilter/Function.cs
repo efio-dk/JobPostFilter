@@ -13,8 +13,8 @@ namespace JobPostFilter
     public class Function
     {
         static AmazonDynamoDBClient client = new AmazonDynamoDBClient();
-        Table bodyTable = Table.LoadTable(client, "PostBodyHashes");
-        Table urlTable = Table.LoadTable(client, "PostUrlHashes");
+        Table bodyTable = Table.LoadTable(client, GlobalVars.BODY_TABLE);
+        Table urlTable = Table.LoadTable(client, GlobalVars.URL_TABLE);
 
         /// <summary>
         /// Default constructor. This constructor is used by Lambda to construct the instance. When invoked in a Lambda environment
