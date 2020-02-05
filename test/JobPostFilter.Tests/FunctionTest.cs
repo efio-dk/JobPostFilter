@@ -114,7 +114,7 @@ namespace JobPostFilter.Tests
 
             string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object);
 
-            Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts", queueUri);
+            Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.SUCESS_QUEUE, queueUri);
         }
 
         [Fact]
@@ -128,7 +128,7 @@ namespace JobPostFilter.Tests
 
             string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object);
 
-            Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts", queueUri);
+            Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.EXISTING_QUEUE, queueUri);
         }
 
         [Fact]
@@ -142,7 +142,7 @@ namespace JobPostFilter.Tests
 
             string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object);
 
-            Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts", queueUri);
+            Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.EXISTING_QUEUE, queueUri);
         }
 
         [Fact]
@@ -155,7 +155,7 @@ namespace JobPostFilter.Tests
 
             string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object);
 
-            Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/InvalidJobPosts", queueUri);
+            Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.INVALID_QUEUE, queueUri);
         }
     }
 }

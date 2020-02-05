@@ -13,8 +13,9 @@ namespace JobPostFilter
     public class Function
     {
         static AmazonDynamoDBClient client = new AmazonDynamoDBClient();
-        Table bodyTable = Table.LoadTable(client, "PostBodyHashes");
-        Table urlTable = Table.LoadTable(client, "PostUrlHashes");
+      
+        Table bodyTable = Table.LoadTable(client, GlobalVars.BODY_TABLE);
+        Table urlTable = Table.LoadTable(client, GlobalVars.URL_TABLE);
 
         /// <summary>
         /// Default constructor. This constructor is used by Lambda to construct the instance. When invoked in a Lambda environment
@@ -79,16 +80,16 @@ namespace JobPostFilter
                     if (bodyPresent == false)
                     {
                         db.PutItem(bodyHash, bodyTable, "sourceHash");
-                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ProcessedJobPosts";
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.SUCESS_QUEUE;
                     }
                     else
-                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts";
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.EXISTING_QUEUE;
                 }
                 else
-                    queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/ExistingJobPosts";
+                    queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.EXISTING_QUEUE;
             }
             else
-                queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/InvalidJobPosts";
+                queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.INVALID_QUEUE;
 
             return queueUri;
         }
