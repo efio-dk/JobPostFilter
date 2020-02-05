@@ -64,7 +64,7 @@ namespace JobPostFilter
 
             if (isValid)
             {
-                string jobPostUrl = jobPost.Value<string>("source");
+                string jobPostUrl = jobPost.Value<string>("sourceId");
                 string jobPostBody = jobPost.Value<string>("rawText");
 
                 bool urlPresent = await db.GetItem(jobPostUrl, urlTable);
