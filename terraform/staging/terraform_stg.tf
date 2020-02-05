@@ -53,19 +53,19 @@ resource "aws_dynamodb_table" "stg-post-body-hashes-table" {
   }
 }
 
-resource "aws_dynamodb_table" "stg-post-url-hashes-table" {
-  name           = "stg_PostUrlHashes"
-  hash_key       = "urlHash"
+resource "aws_dynamodb_table" "stg-post-url-table" {
+  name           = "stg_PostUrl"
+  hash_key       = "url"
   read_capacity  = 5
   write_capacity = 5
 
   attribute {
-    name = "urlHash"
+    name = "url"
     type = "S"
   }
 
   tags = {
-    Name        = "stg-post-url-hashes-table"
+    Name        = "stg-post-url-table"
     Environment = "staging"
   }
 }

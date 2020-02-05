@@ -66,12 +66,11 @@ namespace JobPostFilter
                 string jobPostUrl = jobPost.Value<string>("source");
                 string jobPostBody = jobPost.Value<string>("rawText");
 
-                string urlHash = Utility.ComputeSha256Hash(jobPostUrl);
-                bool urlPresent = await db.GetItem(urlHash, urlTable);
+                bool urlPresent = await db.GetItem(jobPostUrl, urlTable);
 
                 if (urlPresent == false)
                 {
-                    db.PutItem(urlHash, urlTable, "urlHash");
+                    db.PutItem(jobPostUrl, urlTable, "url");
 
                     string bodyHash = Utility.ComputeSha256Hash(jobPostBody);
                     bool bodyPresent = await db.GetItem(bodyHash, bodyTable);

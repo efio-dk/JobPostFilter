@@ -5,19 +5,19 @@ namespace JobPostFilter
 {
     public class AWSDB : IDBFacade
     {
-        public async Task<bool> GetItem(string hash, Table table)
+        public async Task<bool> GetItem(string key, Table table)
         {
-            Document result = await table.GetItemAsync(hash);
+            Document result = await table.GetItemAsync(key);
 
             return result != null;
         }
 
-        public async void PutItem(string hash, Table table, string paramName)
+        public async void PutItem(string key, Table table, string paramName)
         {
-            Document hashDoc = new Document();
-            hashDoc[paramName] = hash;
+            Document doc = new Document();
+            doc[paramName] = key;
 
-            await table.PutItemAsync(hashDoc);
+            await table.PutItemAsync(doc);
         }
     }
 }
