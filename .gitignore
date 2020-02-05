@@ -3,3 +3,5 @@
 [Bb]in/
 [Oo]bj/
 publish/
+test/lcov.info
+test/JobPostFilter.Tests/coverage.json
