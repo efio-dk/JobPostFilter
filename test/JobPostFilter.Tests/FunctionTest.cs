@@ -4,6 +4,7 @@ using Xunit;
 using Moq;
 using Amazon.DynamoDBv2.DocumentModel;
 using ServiceStack.Redis;
+using Amazon.Lambda.TestUtilities;
 
 namespace JobPostFilter.Tests
 {
@@ -20,7 +21,7 @@ namespace JobPostFilter.Tests
 
 
         // valid job post json example (contains all REQUIRED fields)
-            string validJobPostRaw = $@"{{
+        string validJobPostRaw = $@"{{
                     ""sourceId"": ""https://test.321.com"",
                     ""sourceType"": ""web"",
                     ""scrapperRef"": ""LinkedIn"",
@@ -28,6 +29,12 @@ namespace JobPostFilter.Tests
                     ""s3key"": ""jobPost1.json"",
                     ""header"": ""DotNet Agency is looking for consultant""
                 }}";
+
+        static TestLambdaLogger logger = new TestLambdaLogger();
+        static TestLambdaContext context = new TestLambdaContext
+        {
+            Logger = logger
+        };
 
         [Fact]
         public void InvalidJobPostTest()
@@ -56,7 +63,7 @@ namespace JobPostFilter.Tests
             var function = new Function();
             JObject jobPostObj = JObject.Parse(validJobPostRaw);
 
-            string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object);
+            string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object,context);
 
             Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.SUCESS_QUEUE, queueUri);
         }
@@ -70,7 +77,7 @@ namespace JobPostFilter.Tests
             var function = new Function();
             JObject jobPostObj = JObject.Parse(validJobPostRaw);
 
-            string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object);
+            string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object,context);
 
             Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.EXISTING_QUEUE, queueUri);
         }
@@ -84,7 +91,7 @@ namespace JobPostFilter.Tests
             var function = new Function();
             JObject jobPostObj = JObject.Parse(validJobPostRaw);
 
-            string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object);
+            string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object,context);
 
             Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.EXISTING_QUEUE, queueUri);
         }
@@ -97,7 +104,7 @@ namespace JobPostFilter.Tests
             var function = new Function();
             JObject jobPostObj = JObject.Parse(invalidJobPostRaw);
 
-            string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object);
+            string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object,context);
 
             Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.INVALID_QUEUE, queueUri);
         }
