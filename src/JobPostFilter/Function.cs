@@ -67,13 +67,13 @@ namespace JobPostFilter
                 string jobPostUrl = jobPost.Value<string>("sourceId");
                 string jobPostHash = jobPost.Value<string>("hash");
 
-                bool urlPresent = await db.GetItem(jobPostUrl, urlTable);
+                bool urlPresent = await db.ItemExists(jobPostUrl, urlTable);
 
                 if (urlPresent == false)
                 {
                     db.PutItem(jobPostUrl, urlTable, "url");
 
-                    bool bodyPresent = await db.GetItem(jobPostHash, bodyTable);
+                    bool bodyPresent = await db.ItemExists(jobPostHash, bodyTable);
 
                     if (bodyPresent == false)
                     {

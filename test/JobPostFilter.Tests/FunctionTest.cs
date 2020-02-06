@@ -51,7 +51,7 @@ namespace JobPostFilter.Tests
         public async Task UnexistentJobPostQueueTest()
         {
             Mock<IDBFacade> db = new Mock<IDBFacade>();
-            db.Setup(x => x.GetItem(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(false));
+            db.Setup(x => x.ItemExists(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(false));
 
             var function = new Function();
             JObject jobPostObj = JObject.Parse(validJobPostRaw);
@@ -65,7 +65,7 @@ namespace JobPostFilter.Tests
         public async Task RepeatedJobPostUrlQueueTest()
         {
             Mock<IDBFacade> db = new Mock<IDBFacade>();
-            db.Setup(x => x.GetItem(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(true));
+            db.Setup(x => x.ItemExists(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(true));
 
             var function = new Function();
             JObject jobPostObj = JObject.Parse(validJobPostRaw);
@@ -79,7 +79,7 @@ namespace JobPostFilter.Tests
         public async Task RepeatedJobPostBodyQueueTest()
         {
             Mock<IDBFacade> db = new Mock<IDBFacade>();
-            db.SetupSequence(x => x.GetItem(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(false)).Returns(Task.FromResult(true));
+            db.SetupSequence(x => x.ItemExists(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(false)).Returns(Task.FromResult(true));
 
             var function = new Function();
             JObject jobPostObj = JObject.Parse(validJobPostRaw);
@@ -100,20 +100,6 @@ namespace JobPostFilter.Tests
             string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object);
 
             Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.INVALID_QUEUE, queueUri);
-        }
-
-         [Fact]
-        public async Task RedisSimpleTest()
-        {
-            string allUsers = "";
-            var manager = new RedisManagerPool("jobpostfilter-redis.ovby8n.ng.0001.euw1.cache.amazonaws.com:6379");
-            using ( var client = manager.GetClient())
-            {
-                client.Set("foo","br");
-                allUsers = client.GetValue("foo");
-            }
-
-            Assert.Equal("br", allUsers);
         }
     }
 }

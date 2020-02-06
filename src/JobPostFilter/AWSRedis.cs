@@ -5,31 +5,37 @@ using ServiceStack.Redis;
 
 namespace JobPostFilter
 {
-    public class AWSRedis : IDBFacade
+    public class AWSRedis : ICacheFacade
     {
-        public Task<bool> GetItem(string hash, Table table)
+        public bool GetItem(string hash)
         {
-            /*try
+            bool exists = false;
+            var manager = new RedisManagerPool("jobpostfilter-redis-ro.ovby8n.ng.0001.euw1.cache.amazonaws.com:6379");
+            using ( var client = manager.GetClient())
             {
-                using (var redis = new RedisClient("redis-dss.ia4.0001.use1.cache.amazonaws.com", 6379))
+                try {
+                    client.GetValue(hash);
+                    exists = true;
+                }
+                catch(Exception e)
                 {
-                    redis.Set("foo","br");
-
-                    var allUsers = redis.Get("foo");
-                    return true;
+                    exists = false;
                 }
             }
-            catch (Exception e)
-            {
-                return "Oops! something went wrong";
-            }*/
-
-            throw new System.NotImplementedException();
+            return exists;
         }
 
-        public void PutItem(string hash, Table table, string paramName)
+        public void PutItem(string hash)
         {
-            throw new System.NotImplementedException();
+            var manager = new RedisManagerPool("jobpostfilter-redis-ro.ovby8n.ng.0001.euw1.cache.amazonaws.com:6379");
+            using ( var client = manager.GetClient())
+            {
+                try {
+                    client.SetValue(hash,"");
+                }
+                catch(Exception e)
+                {}
+            }
         }
     }
 }
