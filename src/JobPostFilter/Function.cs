@@ -50,9 +50,10 @@ namespace JobPostFilter
         {
             JObject jobPost = JObject.Parse(message.Body);
             string queueUri = await GetQueueForMessage(jobPost, db, context);
-
+            context.Logger.LogLine("QUEUE TO PUBISH: " + queueUri);
             // publish message to the corresponding SQS queue
             await queue.PublishToQueue(message.Body, queueUri);
+            context.Logger.LogLine("FINISHED PUBLISHING: " + queueUri);
 
             await Task.CompletedTask;
         }
@@ -78,11 +79,15 @@ namespace JobPostFilter
                 {
                     db.PutItem(jobPostUrl, urlTable, "url");
 
+                    context.Logger.LogLine("before db call" + isValid.ToString());
                     bool bodyPresent = await db.ItemExists(jobPostHash, bodyTable);
+                    context.Logger.LogLine("after db call" + isValid.ToString());
 
                     if (bodyPresent == false)
                     {
+                        context.Logger.LogLine("before db call" + isValid.ToString());
                         db.PutItem(jobPostHash, bodyTable, "sourceHash");
+                        context.Logger.LogLine("after db call" + isValid.ToString());
                         queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.SUCESS_QUEUE;
                     }
                     else
