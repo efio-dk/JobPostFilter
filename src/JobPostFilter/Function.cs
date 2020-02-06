@@ -13,7 +13,7 @@ namespace JobPostFilter
     public class Function
     {
         static AmazonDynamoDBClient client = new AmazonDynamoDBClient();
-      
+
         Table bodyTable = Table.LoadTable(client, GlobalVars.BODY_TABLE);
         Table urlTable = Table.LoadTable(client, GlobalVars.URL_TABLE);
 
@@ -49,7 +49,7 @@ namespace JobPostFilter
         public async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context, IDBFacade db, IQueueFacade queue)
         {
             JObject jobPost = JObject.Parse(message.Body);
-            string queueUri = await GetQueueForMessage(jobPost, db);
+            string queueUri = await GetQueueForMessage(jobPost, db, context);
 
             // publish message to the corresponding SQS queue
             await queue.PublishToQueue(message.Body, queueUri);
@@ -57,9 +57,11 @@ namespace JobPostFilter
             await Task.CompletedTask;
         }
 
-        public async Task<string> GetQueueForMessage(JObject jobPost, IDBFacade db)
+        public async Task<string> GetQueueForMessage(JObject jobPost, IDBFacade db, ILambdaContext context)
         {
+            context.Logger.LogLine("Got to before verifying schema");
             bool isValid = Utility.IsSchemaValid(jobPost);
+            context.Logger.LogLine("verified schema: " + isValid.ToString());
             string queueUri = "";
 
             if (isValid)
@@ -67,7 +69,10 @@ namespace JobPostFilter
                 string jobPostUrl = jobPost.Value<string>("sourceId");
                 string jobPostHash = jobPost.Value<string>("hash");
 
+                context.Logger.LogLine("before db call" + isValid.ToString());
                 bool urlPresent = await db.ItemExists(jobPostUrl, urlTable);
+
+                context.Logger.LogLine("after db call" + isValid.ToString());
 
                 if (urlPresent == false)
                 {
@@ -78,16 +83,16 @@ namespace JobPostFilter
                     if (bodyPresent == false)
                     {
                         db.PutItem(jobPostHash, bodyTable, "sourceHash");
-                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.SUCESS_QUEUE;
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.SUCESS_QUEUE;
                     }
                     else
-                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.EXISTING_QUEUE;
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.EXISTING_QUEUE;
                 }
                 else
                     queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.EXISTING_QUEUE;
             }
             else
-                queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.INVALID_QUEUE;
+                queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.INVALID_QUEUE;
 
             return queueUri;
         }
