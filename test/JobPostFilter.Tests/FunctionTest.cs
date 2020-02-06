@@ -1,16 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-
-using Amazon.Lambda.TestUtilities;
-using Amazon.Lambda.SQSEvents;
-
-using JobPostFilter;
 using Newtonsoft.Json.Linq;
 using Xunit;
 using Moq;
 using Amazon.DynamoDBv2.DocumentModel;
+using ServiceStack.Redis;
 
 namespace JobPostFilter.Tests
 {
@@ -58,7 +51,7 @@ namespace JobPostFilter.Tests
         public async Task UnexistentJobPostQueueTest()
         {
             Mock<IDBFacade> db = new Mock<IDBFacade>();
-            db.Setup(x => x.GetItem(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(false));
+            db.Setup(x => x.ItemExists(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(false));
 
             var function = new Function();
             JObject jobPostObj = JObject.Parse(validJobPostRaw);
@@ -72,7 +65,7 @@ namespace JobPostFilter.Tests
         public async Task RepeatedJobPostUrlQueueTest()
         {
             Mock<IDBFacade> db = new Mock<IDBFacade>();
-            db.Setup(x => x.GetItem(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(true));
+            db.Setup(x => x.ItemExists(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(true));
 
             var function = new Function();
             JObject jobPostObj = JObject.Parse(validJobPostRaw);
@@ -86,7 +79,7 @@ namespace JobPostFilter.Tests
         public async Task RepeatedJobPostBodyQueueTest()
         {
             Mock<IDBFacade> db = new Mock<IDBFacade>();
-            db.SetupSequence(x => x.GetItem(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(false)).Returns(Task.FromResult(true));
+            db.SetupSequence(x => x.ItemExists(It.IsAny<string>(), It.IsAny<Table>())).Returns(Task.FromResult(false)).Returns(Task.FromResult(true));
 
             var function = new Function();
             JObject jobPostObj = JObject.Parse(validJobPostRaw);

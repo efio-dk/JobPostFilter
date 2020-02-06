@@ -5,7 +5,7 @@ namespace JobPostFilter
 {
     public interface IDBFacade
     {
-         Task<bool> GetItem(string hash, Table table);
+         Task<bool> ItemExists(string hash, Table table);
          void PutItem(string hash, Table table, string paramName);
     }
 }

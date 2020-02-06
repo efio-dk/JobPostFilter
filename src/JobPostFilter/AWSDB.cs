@@ -5,15 +5,29 @@ namespace JobPostFilter
 {
     public class AWSDB : IDBFacade
     {
-        public async Task<bool> GetItem(string key, Table table)
+        ICacheFacade cache;
+        public AWSDB()
         {
-            Document result = await table.GetItemAsync(key);
+            cache = new AWSRedis();
+        }
+        public async Task<bool> ItemExists(string key, Table table)
+        {
+            bool result = cache.GetItem(key);
 
-            return result != null;
+            if (!result)
+            {
+                Document doc = await table.GetItemAsync(key);
+                if(doc != null)
+                    result = true;
+            }
+
+            return result;
         }
 
         public async void PutItem(string key, Table table, string paramName)
         {
+            cache.PutItem(key);
+            
             Document doc = new Document();
             doc[paramName] = key;
 
