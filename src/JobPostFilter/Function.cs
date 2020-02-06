@@ -65,7 +65,7 @@ namespace JobPostFilter
             if (isValid)
             {
                 string jobPostUrl = jobPost.Value<string>("sourceId");
-                string jobPostBody = jobPost.Value<string>("rawText");
+                string jobPostHash = jobPost.Value<string>("hash");
 
                 bool urlPresent = await db.GetItem(jobPostUrl, urlTable);
 
@@ -73,12 +73,11 @@ namespace JobPostFilter
                 {
                     db.PutItem(jobPostUrl, urlTable, "url");
 
-                    string bodyHash = Utility.ComputeSha256Hash(jobPostBody);
-                    bool bodyPresent = await db.GetItem(bodyHash, bodyTable);
+                    bool bodyPresent = await db.GetItem(jobPostHash, bodyTable);
 
                     if (bodyPresent == false)
                     {
-                        db.PutItem(bodyHash, bodyTable, "sourceHash");
+                        db.PutItem(jobPostHash, bodyTable, "sourceHash");
                         queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.SUCESS_QUEUE;
                     }
                     else
