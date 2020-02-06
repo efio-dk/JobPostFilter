@@ -1,16 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-
-using Amazon.Lambda.TestUtilities;
-using Amazon.Lambda.SQSEvents;
-
-using JobPostFilter;
 using Newtonsoft.Json.Linq;
 using Xunit;
 using Moq;
 using Amazon.DynamoDBv2.DocumentModel;
+using ServiceStack.Redis;
 
 namespace JobPostFilter.Tests
 {
@@ -107,6 +100,20 @@ namespace JobPostFilter.Tests
             string queueUri = await function.GetQueueForMessage(jobPostObj, db.Object);
 
             Assert.Equal("https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.INVALID_QUEUE, queueUri);
+        }
+
+         [Fact]
+        public async Task RedisSimpleTest()
+        {
+            string allUsers = "";
+            var manager = new RedisManagerPool("jobpostfilter-redis.ovby8n.ng.0001.euw1.cache.amazonaws.com:6379");
+            using ( var client = manager.GetClient())
+            {
+                client.Set("foo","br");
+                allUsers = client.GetValue("foo");
+            }
+
+            Assert.Equal("br", allUsers);
         }
     }
 }
