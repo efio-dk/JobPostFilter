@@ -15,7 +15,7 @@ resource "aws_vpc" "prod-job-post-vpc" {
 }
 
 resource "aws_subnet" "prod-job-post-subnet" {
-  vpc_id     = "${aws_vpc.prod-job-post-vpc.id}"
+  vpc_id     = aws_vpc.prod-job-post-vpc.id
   cidr_block = "10.0.1.0/24"
 
   tags = {
@@ -25,7 +25,7 @@ resource "aws_subnet" "prod-job-post-subnet" {
 }
 
 resource "aws_internet_gateway" "prod-job-post-internet-gateway" {
-  vpc_id = "${aws_vpc.prod-job-post-vpc.id}"
+  vpc_id = aws_vpc.prod-job-post-vpc.id
 
   tags = {
     Name        = "prod-job-post-internet-gateway",
@@ -34,16 +34,11 @@ resource "aws_internet_gateway" "prod-job-post-internet-gateway" {
 }
 
 resource "aws_route_table" "prod-job-post-route-table" {
-  vpc_id = "${aws_vpc.prod-job-post-vpc.id}"
-
-  route {
-    cidr_block = "10.0.1.0/24"
-    gateway_id = "local"
-  }
+  vpc_id = aws_vpc.prod-job-post-vpc.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = "${aws_internet_gateway.prod-job-post-internet-gateway.id}"
+    gateway_id = aws_internet_gateway.prod-job-post-internet-gateway.id
   }
 
   tags = {
@@ -53,20 +48,26 @@ resource "aws_route_table" "prod-job-post-route-table" {
 }
 
 resource "aws_vpc_endpoint" "prod-job-post-sqs-endpoint" {
-  vpc_id       = "${aws_vpc.prod-job-post-vpc.id}"
-  service_name = "com.amazonaws.eu-west-1.sqs"
-  subnet_ids   = ["${aws_subnet.prod-job-post-subnet.id}"]
+  vpc_id             = aws_vpc.prod-job-post-vpc.id
+  service_name       = "com.amazonaws.eu-west-1.sqs"
+  subnet_ids         = ["${aws_subnet.prod-job-post-subnet.id}"]
+  security_group_ids = ["${aws_security_group.prod-job-post-security-group.id}"]
+  vpc_endpoint_type  = "Interface"
 
   tags = {
+    Name        = "prod-job-post-sqs-endpoint",
     Environment = "production"
   }
 }
 
 resource "aws_vpc_endpoint" "prod-job-post-dynamodb-endpoint" {
-  service_name    = "com.amazonaws.eu-west-1.dynamodb"
-  route_table_ids = ["${aws_route_table.prod-job-post-route-table.id}"]
+  vpc_id            = aws_vpc.prod-job-post-vpc.id
+  service_name      = "com.amazonaws.eu-west-1.dynamodb"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = ["${aws_route_table.prod-job-post-route-table.id}"]
 
   tags = {
+    Name        = "prod-job-post-dynamodb-endpoint",
     Environment = "production"
   }
 }
@@ -76,12 +77,33 @@ resource "aws_elasticache_subnet_group" "prod-job-post-subnet-group" {
   subnet_ids = ["${aws_subnet.prod-job-post-subnet.id}"]
 }
 
+resource "aws_security_group" "prod-job-post-security-group" {
+  name        = "prod-job-post-security-group"
+  description = "Secure all job post related traffic"
+  vpc_id      = aws_vpc.prod-job-post-vpc.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 
 # Data resources (SQS, DynamoDB, Redis)
 resource "aws_sqs_queue" "prod-existing-job-post-queue" {
   name = "prod_ExistingJobPosts"
 
   tags = {
+    Name        = "prod-existing-job-post-queue",
     Environment = "production"
   }
 }
@@ -90,6 +112,7 @@ resource "aws_sqs_queue" "prod-invalid-job-post-queue" {
   name = "prod_InvalidJobPosts"
 
   tags = {
+    Name        = "prod-invalid-job-post-queue",
     Environment = "production"
   }
 }
@@ -98,6 +121,7 @@ resource "aws_sqs_queue" "prod-job-post-queue" {
   name = "prod_JobPosts"
 
   tags = {
+    Name        = "prod-job-post-queue",
     Environment = "production"
   }
 }
@@ -106,6 +130,7 @@ resource "aws_sqs_queue" "prod-processed-job-post-queue" {
   name = "prod_ProcessedJobPosts"
 
   tags = {
+    Name        = "prod-processed-job-post-queue",
     Environment = "production"
   }
 }
