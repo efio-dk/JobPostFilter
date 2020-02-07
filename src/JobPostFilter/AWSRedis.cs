@@ -10,7 +10,7 @@ namespace JobPostFilter
         public bool GetItem(string hash)
         {
             bool exists = false;
-            var manager = new RedisManagerPool("jobpostfilter-redis.ovby8n.ng.0001.euw1.cache.amazonaws.com:6379");
+            var manager = new RedisManagerPool("jobpost-redis-new.ovby8n.0001.euw1.cache.amazonaws.com:6379");
             using ( var client = manager.GetClient())
             {
                 try {
@@ -27,7 +27,7 @@ namespace JobPostFilter
 
         public void PutItem(string hash)
         {
-            var manager = new RedisManagerPool("jobpostfilter-redis.ovby8n.ng.0001.euw1.cache.amazonaws.com:6379");
+            var manager = new RedisManagerPool("jobpost-redis-new.ovby8n.0001.euw1.cache.amazonaws.com:6379");
             using ( var client = manager.GetClient())
             {
                 try {
