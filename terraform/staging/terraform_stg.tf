@@ -9,7 +9,7 @@ resource "aws_vpc" "stg-job-post-vpc" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name = "stg-job-post-vpc",
+    Name        = "stg-job-post-vpc",
     Environment = "staging"
   }
 }
@@ -19,7 +19,7 @@ resource "aws_subnet" "stg-job-post-subnet" {
   cidr_block = "10.0.1.0/24"
 
   tags = {
-    Name = "stg-job-post-subnet",
+    Name        = "stg-job-post-subnet",
     Environment = "staging"
   }
 }
@@ -28,7 +28,7 @@ resource "aws_internet_gateway" "stg-job-post-internet-gateway" {
   vpc_id = "${aws_vpc.stg-job-post-vpc.id}"
 
   tags = {
-    Name = "stg-job-post-internet-gateway",
+    Name        = "stg-job-post-internet-gateway",
     Environment = "staging"
   }
 }
@@ -47,7 +47,7 @@ resource "aws_route_table" "stg-job-post-route-table" {
   }
 
   tags = {
-    Name = "stg-job-post-route-table",
+    Name        = "stg-job-post-route-table",
     Environment = "staging"
   }
 }
@@ -55,7 +55,7 @@ resource "aws_route_table" "stg-job-post-route-table" {
 resource "aws_vpc_endpoint" "stg-job-post-sqs-endpoint" {
   vpc_id       = "${aws_vpc.stg-job-post-vpc.id}"
   service_name = "com.amazonaws.eu-west-1.sqs"
-  subnet_ids = ["${aws_subnet.stg-job-post-subnet.id}"]
+  subnet_ids   = ["${aws_subnet.stg-job-post-subnet.id}"]
 
   tags = {
     Environment = "staging"
@@ -63,11 +63,20 @@ resource "aws_vpc_endpoint" "stg-job-post-sqs-endpoint" {
 }
 
 resource "aws_vpc_endpoint" "stg-job-post-dynamodb-endpoint" {
-  vpc_id       = "${aws_vpc.stg-job-post-vpc.id}"
-  service_name = "com.amazonaws.eu-west-1.dynamodb"
+  service_name    = "com.amazonaws.eu-west-1.dynamodb"
   route_table_ids = ["${aws_route_table.stg-job-post-route-table.id}"]
 
   tags = {
+    Environment = "staging"
+  }
+}
+
+resource "aws_elasticache_subnet_group" "stg-job-post-subnet-group" {
+  name       = "stg-job-post-subnet-group"
+  subnet_ids = ["${aws_subnet.stg-job-post-subnet.id}"]
+
+  tags = {
+    Name        = "stg-job-post-subnet-group",
     Environment = "staging"
   }
 }
@@ -150,4 +159,10 @@ resource "aws_elasticache_cluster" "stg-job-post-redis" {
   parameter_group_name = "default.redis5.0"
   engine_version       = "5.0.6"
   port                 = 6379
+  subnet_group_name    = "stg-job-post-subnet-group"
+
+  tags = {
+    Name        = "stg-job-post-redis"
+    Environment = "staging"
+  }
 }

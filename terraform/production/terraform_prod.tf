@@ -9,7 +9,7 @@ resource "aws_vpc" "prod-job-post-vpc" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name = "prod-job-post-vpc",
+    Name        = "prod-job-post-vpc",
     Environment = "production"
   }
 }
@@ -19,7 +19,7 @@ resource "aws_subnet" "prod-job-post-subnet" {
   cidr_block = "10.0.1.0/24"
 
   tags = {
-    Name = "prod-job-post-subnet",
+    Name        = "prod-job-post-subnet",
     Environment = "production"
   }
 }
@@ -28,7 +28,7 @@ resource "aws_internet_gateway" "prod-job-post-internet-gateway" {
   vpc_id = "${aws_vpc.prod-job-post-vpc.id}"
 
   tags = {
-    Name = "prod-job-post-internet-gateway",
+    Name        = "prod-job-post-internet-gateway",
     Environment = "production"
   }
 }
@@ -47,7 +47,7 @@ resource "aws_route_table" "prod-job-post-route-table" {
   }
 
   tags = {
-    Name = "prod-job-post-route-table",
+    Name        = "prod-job-post-route-table",
     Environment = "production"
   }
 }
@@ -55,7 +55,7 @@ resource "aws_route_table" "prod-job-post-route-table" {
 resource "aws_vpc_endpoint" "prod-job-post-sqs-endpoint" {
   vpc_id       = "${aws_vpc.prod-job-post-vpc.id}"
   service_name = "com.amazonaws.eu-west-1.sqs"
-  subnet_ids = ["${aws_subnet.prod-job-post-subnet.id}"]
+  subnet_ids   = ["${aws_subnet.prod-job-post-subnet.id}"]
 
   tags = {
     Environment = "production"
@@ -63,8 +63,8 @@ resource "aws_vpc_endpoint" "prod-job-post-sqs-endpoint" {
 }
 
 resource "aws_vpc_endpoint" "prod-job-post-dynamodb-endpoint" {
-  vpc_id       = "${aws_vpc.prod-job-post-vpc.id}"
-  service_name = "com.amazonaws.eu-west-1.dynamodb"
+  vpc_id          = "${aws_vpc.prod-job-post-vpc.id}"
+  service_name    = "com.amazonaws.eu-west-1.dynamodb"
   route_table_ids = ["${aws_route_table.prod-job-post-route-table.id}"]
 
   tags = {
@@ -149,4 +149,10 @@ resource "aws_elasticache_cluster" "prod-job-post-redis" {
   parameter_group_name = "default.redis5.0"
   engine_version       = "5.0.6"
   port                 = 6379
+  subnet_group_name    = "prod-job-post-subnet-group"
+
+  tags = {
+    Name        = "prod-job-post-redis"
+    Environment = "production"
+  }
 }
