@@ -8,11 +8,11 @@ namespace JobPostFilter
         ICacheFacade cache;
         public AWSDB()
         {
-            cache = new AWSRedis();
+            cache = new AWSRedis("jobpost-redis-new.ovby8n.0001.euw1.cache.amazonaws.com", 6379);
         }
         public async Task<bool> ItemExists(string key, Table table)
         {
-            bool result = cache.GetItem(key);
+            bool result = cache.ItemExists(key);
 
             if (!result)
             {

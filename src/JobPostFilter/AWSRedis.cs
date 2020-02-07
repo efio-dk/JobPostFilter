@@ -7,34 +7,35 @@ namespace JobPostFilter
 {
     public class AWSRedis : ICacheFacade
     {
-        public bool GetItem(string hash)
+        private string _redisURL;
+        private int _redisPort;
+
+        public AWSRedis(string redisURL, int port)
+        {
+            _redisURL = redisURL;
+            _redisPort = port;
+        }
+
+        public bool ItemExists(string hash)
         {
             bool exists = false;
-            var manager = new RedisManagerPool("jobpost-redis-new.ovby8n.0001.euw1.cache.amazonaws.com:6379");
-            using ( var client = manager.GetClient())
+            using (var client = new RedisClient(_redisURL, _redisPort))
             {
-                try {
-                    client.GetValue(hash);
-                    exists = true;
-                }
-                catch(Exception e)
-                {
-                    exists = false;
-                }
+                exists = client.ContainsKey(hash);
             }
             return exists;
         }
 
         public void PutItem(string hash)
         {
-            var manager = new RedisManagerPool("jobpost-redis-new.ovby8n.0001.euw1.cache.amazonaws.com:6379");
-            using ( var client = manager.GetClient())
+            using (var client = new RedisClient(_redisURL, _redisPort))
             {
-                try {
-                    client.SetValue(hash,"");
+                try
+                {
+                    client.SetValue(hash, "");
                 }
-                catch(Exception e)
-                {}
+                catch (Exception e)
+                { }
             }
         }
     }

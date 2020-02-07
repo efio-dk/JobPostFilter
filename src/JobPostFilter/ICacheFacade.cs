@@ -2,7 +2,7 @@ namespace JobPostFilter
 {
     public interface ICacheFacade
     {
-         bool GetItem(string hash);
+         bool ItemExists(string hash);
          void PutItem(string hash);
     }
 }
