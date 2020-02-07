@@ -38,7 +38,6 @@ resource "aws_route_table" "stg-job-post-route-table" {
 
   route {
     cidr_block = "10.0.1.0/24"
-    gateway_id = "local"
   }
 
   route {
@@ -55,7 +54,6 @@ resource "aws_route_table" "stg-job-post-route-table" {
 resource "aws_vpc_endpoint" "stg-job-post-sqs-endpoint" {
   vpc_id       = "${aws_vpc.stg-job-post-vpc.id}"
   service_name = "com.amazonaws.eu-west-1.sqs"
-  subnet_ids   = ["${aws_subnet.stg-job-post-subnet.id}"]
 
   tags = {
     Environment = "staging"
@@ -63,6 +61,7 @@ resource "aws_vpc_endpoint" "stg-job-post-sqs-endpoint" {
 }
 
 resource "aws_vpc_endpoint" "stg-job-post-dynamodb-endpoint" {
+  vpc_id = "${aws_vpc.stg-job-post-vpc.id}"
   service_name    = "com.amazonaws.eu-west-1.dynamodb"
   route_table_ids = ["${aws_route_table.stg-job-post-route-table.id}"]
 
