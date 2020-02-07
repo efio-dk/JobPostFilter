@@ -50,19 +50,15 @@ namespace JobPostFilter
         {
             JObject jobPost = JObject.Parse(message.Body);
             string queueUri = await GetQueueForMessage(jobPost, db, context);
-            context.Logger.LogLine("QUEUE TO PUBISH: " + queueUri);
             // publish message to the corresponding SQS queue
             await queue.PublishToQueue(message.Body, queueUri);
-            context.Logger.LogLine("FINISHED PUBLISHING: " + queueUri);
 
             await Task.CompletedTask;
         }
 
         public async Task<string> GetQueueForMessage(JObject jobPost, IDBFacade db, ILambdaContext context)
         {
-            context.Logger.LogLine("Got to before verifying schema");
             bool isValid = Utility.IsSchemaValid(jobPost);
-            context.Logger.LogLine("verified schema: " + isValid.ToString());
             string queueUri = "";
 
             if (isValid)
@@ -70,24 +66,17 @@ namespace JobPostFilter
                 string jobPostUrl = jobPost.Value<string>("sourceId");
                 string jobPostHash = jobPost.Value<string>("hash");
 
-                context.Logger.LogLine("before db call" + isValid.ToString());
                 bool urlPresent = await db.ItemExists(jobPostUrl, urlTable);
-
-                context.Logger.LogLine("after db call" + isValid.ToString());
 
                 if (urlPresent == false)
                 {
                     db.PutItem(jobPostUrl, urlTable, "url");
 
-                    context.Logger.LogLine("before db call" + isValid.ToString());
                     bool bodyPresent = await db.ItemExists(jobPostHash, bodyTable);
-                    context.Logger.LogLine("after db call" + isValid.ToString());
 
                     if (bodyPresent == false)
                     {
-                        context.Logger.LogLine("before db call" + isValid.ToString());
                         db.PutItem(jobPostHash, bodyTable, "sourceHash");
-                        context.Logger.LogLine("after db call" + isValid.ToString());
                         queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.SUCESS_QUEUE;
                     }
                     else
