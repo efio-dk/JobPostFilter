@@ -63,13 +63,17 @@ resource "aws_vpc_endpoint" "prod-job-post-sqs-endpoint" {
 }
 
 resource "aws_vpc_endpoint" "prod-job-post-dynamodb-endpoint" {
-  vpc_id          = "${aws_vpc.prod-job-post-vpc.id}"
   service_name    = "com.amazonaws.eu-west-1.dynamodb"
   route_table_ids = ["${aws_route_table.prod-job-post-route-table.id}"]
 
   tags = {
     Environment = "production"
   }
+}
+
+resource "aws_elasticache_subnet_group" "prod-job-post-subnet-group" {
+  name       = "prod-job-post-subnet-group"
+  subnet_ids = ["${aws_subnet.prod-job-post-subnet.id}"]
 }
 
 
@@ -140,6 +144,7 @@ resource "aws_dynamodb_table" "prod-post-url-table" {
     Environment = "production"
   }
 }
+
 
 resource "aws_elasticache_cluster" "prod-job-post-redis" {
   cluster_id           = "prod-job-post-cluster"

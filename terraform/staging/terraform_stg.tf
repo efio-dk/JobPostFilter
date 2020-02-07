@@ -74,11 +74,6 @@ resource "aws_vpc_endpoint" "stg-job-post-dynamodb-endpoint" {
 resource "aws_elasticache_subnet_group" "stg-job-post-subnet-group" {
   name       = "stg-job-post-subnet-group"
   subnet_ids = ["${aws_subnet.stg-job-post-subnet.id}"]
-
-  tags = {
-    Name        = "stg-job-post-subnet-group",
-    Environment = "staging"
-  }
 }
 
 
