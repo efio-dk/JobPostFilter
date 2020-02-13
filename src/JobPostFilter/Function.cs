@@ -49,14 +49,10 @@ namespace JobPostFilter
         public async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context, IDBFacade db, IQueueFacade queue)
         {
             JObject jobPost = JObject.Parse(message.Body);
-            context.Logger.LogLine("Before getting queue");
             string queueUri = await GetQueueForMessage(jobPost, db, context);
-            context.Logger.LogLine("Queue URI - " + queueUri);
             // publish message to the corresponding SQS queue
 
-            context.Logger.LogLine("Before PUBLISH TO QUEUE");
             await queue.PublishToQueue(message.Body, queueUri);
-            context.Logger.LogLine("AFTER publish to queue");
 
             await Task.CompletedTask;
         }
@@ -65,16 +61,13 @@ namespace JobPostFilter
         {
             bool isValid = Utility.IsSchemaValid(jobPost);
             string queueUri = "";
-            context.Logger.LogLine("IS SCHEMA VALID - " + isValid);
 
             if (isValid)
             {
                 string jobPostUrl = jobPost.Value<string>("sourceId");
                 string jobPostHash = jobPost.Value<string>("hash");
 
-                context.Logger.LogLine("NOT IN DB YET");
                 bool urlPresent = await db.ItemExists(jobPostUrl, urlTable);
-                context.Logger.LogLine("After DB");
 
                 if (urlPresent == false)
                 {
