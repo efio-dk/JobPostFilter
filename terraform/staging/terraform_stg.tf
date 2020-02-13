@@ -207,7 +207,7 @@ resource "aws_lambda_function" "stg-JobPostFilter-lambda" {
   filename         = "../../src/JobPostFilter/bin/Release/netcoreapp2.1/JobPostFilter.zip"
   source_code_hash = filebase64sha256("../../src/JobPostFilter/bin/Release/netcoreapp2.1/JobPostFilter.zip")
 
-  vpc_config = {
+  vpc_config {
     subnet_ids         = ["${aws_subnet.stg-job-post-subnet.id}"]
     security_group_ids = ["${aws_security_group.stg-job-post-security-group.id}"]
   }
