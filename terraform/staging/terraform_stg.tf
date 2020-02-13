@@ -198,15 +198,19 @@ resource "aws_elasticache_cluster" "stg-job-post-redis" {
   }
 }
 
+# Lambda
 resource "aws_lambda_function" "stg-JobPostFilter-lambda" {
-  function_name = "stg-JobPostFilter"
-  handler = "JobPostFilter::JobPostFilter.Function::FunctionHandler"
-  runtime = "dotnetcore2.1"
-  role = "arn:aws:iam::833191605868:role/JobPostFilterRole"
-  
-  s3_bucket = "stg-terraform-job-post-storage-s3"
-  s3_key = "JobPostFilter.zip"
-  source_code_hash = filebase64sha256("JobPostFilter.zip")
+  function_name    = "stg-JobPostFilter"
+  handler          = "JobPostFilter::JobPostFilter.Function::FunctionHandler"
+  runtime          = "dotnetcore2.1"
+  role             = "arn:aws:iam::833191605868:role/JobPostFilterRole"
+  filename         = "../../src/JobPostFilter/bin/Release/netcoreapp2.1/JobPostFilter.zip"
+  source_code_hash = filebase64sha256("../../src/JobPostFilter/bin/Release/netcoreapp2.1/JobPostFilter.zip")
+
+  vpc_config = {
+    subnet_ids         = ["${aws_subnet.stg-job-post-subnet.id}"]
+    security_group_ids = ["${aws_security_group.stg-job-post-security-group.id}"]
+  }
 
   tags = {
     Name        = "stg-JobPostFilter"
@@ -216,5 +220,5 @@ resource "aws_lambda_function" "stg-JobPostFilter-lambda" {
 
 resource "aws_lambda_event_source_mapping" "stg-incoming-sqs" {
   event_source_arn = aws_sqs_queue.stg-incoming-job-post-queue.arn
-  function_name = aws_lambda_function.stg-JobPostFilter-lambda.arn
+  function_name    = aws_lambda_function.stg-JobPostFilter-lambda.arn
 }
