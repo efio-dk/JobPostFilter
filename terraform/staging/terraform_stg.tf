@@ -119,15 +119,6 @@ resource "aws_sqs_queue" "stg-invalid-job-post-queue" {
   }
 }
 
-resource "aws_sqs_queue" "stg-job-post-queue" {
-  name = "stg_JobPosts"
-
-  tags = {
-    Name        = "stg-job-post-queue",
-    Environment = "staging"
-  }
-}
-
 resource "aws_sqs_queue" "stg-processed-job-post-queue" {
   name = "stg_ProcessedJobPosts"
 
