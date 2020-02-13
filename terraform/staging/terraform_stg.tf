@@ -197,6 +197,7 @@ resource "aws_lambda_function" "stg-JobPostFilter-lambda" {
   role             = "arn:aws:iam::833191605868:role/JobPostFilterRole"
   filename         = "../../src/JobPostFilter/bin/Release/netcoreapp2.1/JobPostFilter.zip"
   source_code_hash = filebase64sha256("../../src/JobPostFilter/bin/Release/netcoreapp2.1/JobPostFilter.zip")
+  timeout          = 10
 
   vpc_config {
     subnet_ids         = ["${aws_subnet.stg-job-post-subnet.id}"]
