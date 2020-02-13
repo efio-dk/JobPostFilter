@@ -6,7 +6,8 @@ provider "aws" {
 
 # VPC related
 resource "aws_vpc" "stg-job-post-vpc" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
 
   tags = {
     Name        = "stg-job-post-vpc",
@@ -48,11 +49,12 @@ resource "aws_route_table" "stg-job-post-route-table" {
 }
 
 resource "aws_vpc_endpoint" "stg-job-post-sqs-endpoint" {
-  vpc_id             = aws_vpc.stg-job-post-vpc.id
-  service_name       = "com.amazonaws.eu-west-1.sqs"
-  subnet_ids         = ["${aws_subnet.stg-job-post-subnet.id}"]
-  security_group_ids = ["${aws_security_group.stg-job-post-security-group.id}"]
-  vpc_endpoint_type  = "Interface"
+  vpc_id              = aws_vpc.stg-job-post-vpc.id
+  service_name        = "com.amazonaws.eu-west-1.sqs"
+  subnet_ids          = ["${aws_subnet.stg-job-post-subnet.id}"]
+  security_group_ids  = ["${aws_security_group.stg-job-post-security-group.id}"]
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
 
   tags = {
     Name        = "stg-job-post-sqs-endpoint",
@@ -83,10 +85,10 @@ resource "aws_security_group" "stg-job-post-security-group" {
   vpc_id      = aws_vpc.stg-job-post-vpc.id
 
   ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    self      = true
   }
 
   egress {
@@ -135,6 +137,14 @@ resource "aws_sqs_queue" "stg-processed-job-post-queue" {
   }
 }
 
+resource "aws_sqs_queue" "stg-incoming-job-post-queue" {
+  name = "stg_JobPosts"
+
+  tags = {
+    Name        = "stg-incoming-job-post-queue",
+    Environment = "staging"
+  }
+}
 
 resource "aws_dynamodb_table" "stg-post-body-hashes-table" {
   name           = "stg_PostBodyHashes"
@@ -180,9 +190,31 @@ resource "aws_elasticache_cluster" "stg-job-post-redis" {
   engine_version       = "5.0.6"
   port                 = 6379
   subnet_group_name    = "stg-job-post-subnet-group"
+  security_group_ids   = ["${aws_security_group.stg-job-post-security-group.id}"]
 
   tags = {
     Name        = "stg-job-post-redis"
     Environment = "staging"
   }
+}
+
+resource "aws_lambda_function" "stg-JobPostFilter-lambda" {
+  function_name = "stg-JobPostFilter"
+  handler = "JobPostFilter::JobPostFilter.Function::FunctionHandler"
+  runtime = "dotnetcore2.1"
+  role = "arn:aws:iam::833191605868:role/JobPostFilterRole"
+  
+  s3_bucket = "stg-terraform-job-post-storage-s3"
+  s3_key = "JobPostFilter.zip"
+  source_code_hash = filebase64sha256("JobPostFilter.zip")
+
+  tags = {
+    Name        = "stg-JobPostFilter"
+    Environment = "staging"
+  }
+}
+
+resource "aws_lambda_event_source_mapping" "stg-incoming-sqs" {
+  event_source_arn = aws_sqs_queue.stg-incoming-job-post-queue.arn
+  function_name = aws_lambda_function.stg-JobPostFilter-lambda.arn
 }
