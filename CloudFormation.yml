@@ -1,0 +1,189 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: A sample .Net Core deployment pipeline
+Parameters:
+  GitCloneUrl:
+    Description: Github clone url
+    Type: String
+    Default: https://github.com/efio-dk/JobPostFilter.git
+Resources:
+  DeploymentPipelinePoCRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: codebuild.amazonaws.com
+            Action: "sts:AssumeRole"
+      Description: .Net Core Lambda deployment pipeline Role
+      RoleName: !Sub '${AWS::StackName}Role'
+      Policies: 
+        - PolicyName: "FullAdminRights"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: "Allow"
+                Action: 
+                  - '*'
+                Resource: '*'
+  DevelopmentPipeline:
+    Type: AWS::CodeBuild::Project
+    Properties: 
+      Artifacts:
+        Type: no_artifacts
+      Description: .Net Core Lambda testing pipeline - managed by CF ${AWS::StackName}
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:1.0
+        # EnvironmentVariables:
+        # - Name: varName
+        #   Value: varValue
+      Name: !Sub '${AWS::StackName}-Development'
+      QueuedTimeoutInMinutes: 5
+      ServiceRole: !Ref DeploymentPipelinePoCRole
+      Source: 
+          Auth: 
+            Type: OAUTH
+          BuildSpec: !Sub |
+            version: 0.2
+            phases:
+              install:
+                runtime-versions:
+                  dotnet: 2.2
+              build:
+                commands:
+                  - env | grep codebuild      # displays environment debug information in log
+                  - cd test/JobPostFilter.Tests 
+                  - dotnet test
+          Location: !Ref GitCloneUrl
+          ReportBuildStatus: true
+          Type: GITHUB
+      TimeoutInMinutes: 10
+      Triggers:
+        Webhook: true
+        FilterGroups:
+          - - Type: EVENT
+              Pattern: PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED
+  StagingPipeline:
+    Type: AWS::CodeBuild::Project
+    Properties: 
+      Artifacts:
+        Type: no_artifacts
+      Description: .Net Core Lambda staging pipeline - managed by CF ${AWS::StackName}
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:1.0
+        # EnvironmentVariables:
+        # - Name: varName
+        #   Value: varValue
+      Name: !Sub '${AWS::StackName}-Staging'
+      QueuedTimeoutInMinutes: 5
+      ServiceRole: !Ref DeploymentPipelinePoCRole
+      Source: 
+          Auth: 
+            Type: OAUTH
+          BuildSpec: !Sub |
+            version: 0.2
+            phases:
+              install:
+                runtime-versions:
+                  dotnet: 2.2
+                commands:
+                  - dotnet tool install --global Amazon.Lambda.Tools
+                  - wget https://releases.hashicorp.com/terraform/0.12.20/terraform_0.12.20_linux_amd64.zip -q # getting terraform executable with no console output (-q)
+                  - unzip terraform_0.12.20_linux_amd64.zip -d ./terraform_app
+                  - cd terraform_app
+                  - echo $"export PATH=\$PATH:$(pwd)" >> ~/.bash_profile # adding terraform to global path
+                  - source ~/.bash_profile
+                  - cd ..
+              pre_build:
+                commands:
+                  - cd src/JobPostFilter
+                  - dotnet restore
+              build:
+                commands:
+                  - env | grep codebuild      # displays environment debug information in log
+                  - dotnet lambda package -c Debug -o ./bin/Release/netcoreapp2.1/JobPostFilter.zip -f netcoreapp2.1
+              post_build:
+                commands:
+                  - cd ../../test/JobPostFilter.Tests 
+                  - dotnet test
+                  - cd ../../terraform/staging
+                  - terraform init -input=false
+                  - terraform apply -input=false -auto-approve
+          GitCloneDepth: 0
+          Location: !Ref GitCloneUrl
+          ReportBuildStatus: true
+          Type: GITHUB
+      TimeoutInMinutes: 10
+      Triggers:
+        Webhook: true
+        FilterGroups:
+          - - Type: EVENT
+              Pattern: PUSH
+            - Type: HEAD_REF
+              Pattern: ^refs/heads/staging$
+  DeploymentPipeline:
+    Type: AWS::CodeBuild::Project
+    Properties: 
+      Artifacts:
+        Type: no_artifacts
+      Description: .Net Core Lambda deployment pipeline - managed by CF ${AWS::StackName}
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:1.0
+        # EnvironmentVariables:
+        # - Name: varName
+        #   Value: varValue
+      Name: !Sub '${AWS::StackName}-Prod'
+      QueuedTimeoutInMinutes: 5
+      ServiceRole: !Ref DeploymentPipelinePoCRole
+      Source: 
+          Auth: 
+            Type: OAUTH
+          BuildSpec: !Sub |
+            version: 0.2
+            phases:
+              install:
+                runtime-versions:
+                  dotnet: 2.2
+                commands:
+                  - dotnet tool install --global Amazon.Lambda.Tools
+                  - wget https://releases.hashicorp.com/terraform/0.12.20/terraform_0.12.20_linux_amd64.zip -q # getting terraform executable with no console output (-q)
+                  - unzip terraform_0.12.20_linux_amd64.zip -d ./terraform_app
+                  - cd terraform_app
+                  - echo $"export PATH=\$PATH:$(pwd)" >> ~/.bash_profile # adding terraform to global path
+                  - source ~/.bash_profile
+                  - cd ..
+              pre_build:
+                commands:
+                  - cd src/JobPostFilter
+                  - dotnet restore
+              build:
+                commands:
+                  - env | grep codebuild      # displays environment debug information in log
+                  - dotnet lambda package -c Release -o ./bin/Release/netcoreapp2.1/JobPostFilter.zip -f netcoreapp2.1
+              post_build:
+                commands:
+                  - cd ../../test/JobPostFilter.Tests 
+                  - dotnet test
+                  - cd ../../terraform/production
+                  - terraform init -input=false
+                  - terraform apply -input=false -auto-approve
+          GitCloneDepth: 0
+          Location: !Ref GitCloneUrl
+          ReportBuildStatus: true
+          Type: GITHUB
+      TimeoutInMinutes: 10
+      Triggers:
+        Webhook: true
+        FilterGroups:
+          - - Type: EVENT
+              Pattern: PUSH
+            - Type: HEAD_REF
+              Pattern: ^refs/heads/master$
