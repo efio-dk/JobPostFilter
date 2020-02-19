@@ -35,6 +35,10 @@ namespace JobPostFilter
                     'header': {
                         'description': 'The header of the job post',
                         'type': 'string'
+                    },
+                    'customer': {
+                        'description': 'The company which initiated the job post',
+                        'type': 'string'
                     }
                 },
                 'required': [
