@@ -13,7 +13,6 @@ namespace JobPostFilter
     public class Function
     {
         static AmazonDynamoDBClient client = new AmazonDynamoDBClient();
-      
         Table bodyTable = Table.LoadTable(client, GlobalVars.BODY_TABLE);
         Table urlTable = Table.LoadTable(client, GlobalVars.URL_TABLE);
 
@@ -49,47 +48,45 @@ namespace JobPostFilter
         public async Task ProcessMessageAsync(SQSEvent.SQSMessage message, ILambdaContext context, IDBFacade db, IQueueFacade queue)
         {
             JObject jobPost = JObject.Parse(message.Body);
-            string queueUri = await GetQueueForMessage(jobPost, db);
-
+            string queueUri = await GetQueueForMessage(jobPost, db, context);
             // publish message to the corresponding SQS queue
+
             await queue.PublishToQueue(message.Body, queueUri);
 
             await Task.CompletedTask;
         }
 
-        public async Task<string> GetQueueForMessage(JObject jobPost, IDBFacade db)
+        public async Task<string> GetQueueForMessage(JObject jobPost, IDBFacade db, ILambdaContext context)
         {
             bool isValid = Utility.IsSchemaValid(jobPost);
             string queueUri = "";
 
             if (isValid)
             {
-                string jobPostUrl = jobPost.Value<string>("source");
-                string jobPostBody = jobPost.Value<string>("rawText");
+                string jobPostUrl = jobPost.Value<string>("sourceId");
+                string jobPostHash = jobPost.Value<string>("hash");
 
-                string urlHash = Utility.ComputeSha256Hash(jobPostUrl);
-                bool urlPresent = await db.GetItem(urlHash, urlTable);
+                bool urlPresent = await db.ItemExists(jobPostUrl, urlTable);
 
                 if (urlPresent == false)
                 {
-                    db.PutItem(urlHash, urlTable, "urlHash");
+                    db.PutItem(jobPostUrl, urlTable, "url");
 
-                    string bodyHash = Utility.ComputeSha256Hash(jobPostBody);
-                    bool bodyPresent = await db.GetItem(bodyHash, bodyTable);
+                    bool bodyPresent = await db.ItemExists(jobPostHash, bodyTable);
 
                     if (bodyPresent == false)
                     {
-                        db.PutItem(bodyHash, bodyTable, "sourceHash");
-                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.SUCESS_QUEUE;
+                        db.PutItem(jobPostHash, bodyTable, "sourceHash");
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.SUCESS_QUEUE;
                     }
                     else
-                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.EXISTING_QUEUE;
+                        queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.EXISTING_QUEUE;
                 }
                 else
                     queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.EXISTING_QUEUE;
             }
             else
-                queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/"+ GlobalVars.INVALID_QUEUE;
+                queueUri = "https://sqs.eu-west-1.amazonaws.com/833191605868/" + GlobalVars.INVALID_QUEUE;
 
             return queueUri;
         }

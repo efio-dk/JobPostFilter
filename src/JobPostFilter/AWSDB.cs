@@ -5,19 +5,33 @@ namespace JobPostFilter
 {
     public class AWSDB : IDBFacade
     {
-        public async Task<bool> GetItem(string hash, Table table)
+        ICacheFacade cache;
+        public AWSDB()
         {
-            Document result = await table.GetItemAsync(hash);
+            cache = new AWSRedis("stg-job-post-cluster.ovby8n.0001.euw1.cache.amazonaws.com", 6379);
+        }
+        public async Task<bool> ItemExists(string key, Table table)
+        {
+            bool result = cache.ItemExists(key);
 
-            return result != null;
+            if (!result)
+            {
+                Document doc = await table.GetItemAsync(key);
+                if(doc != null)
+                    result = true;
+            }
+
+            return result;
         }
 
-        public async void PutItem(string hash, Table table, string paramName)
+        public async void PutItem(string key, Table table, string paramName)
         {
-            Document hashDoc = new Document();
-            hashDoc[paramName] = hash;
+            cache.PutItem(key);
+            
+            Document doc = new Document();
+            doc[paramName] = key;
 
-            await table.PutItemAsync(hashDoc);
+            await table.PutItemAsync(doc);
         }
     }
 }
