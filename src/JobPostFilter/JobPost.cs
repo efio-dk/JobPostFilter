@@ -39,13 +39,20 @@ namespace JobPostFilter
                     'customer': {
                         'description': 'The company which initiated the job post',
                         'type': 'string'
+                    },
+                    'keywords': {
+                        'description': 'A list of all tech keywords found in the post.',
+                        'type': 'array',
+                        'minItems': 1,
+                        'uniqueItems': true
                     }
                 },
                 'required': [
                     'sourceId',
                     'sourceType',
                     'hash',
-                    's3key'
+                    's3key',
+                    'keywords'
                 ],
                 'additionalProperties': false
                 }";
